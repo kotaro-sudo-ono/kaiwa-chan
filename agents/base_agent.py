@@ -2,9 +2,11 @@
 
 class BaseAgent:
 
-    def __init__(self, task_manager, tool_registry):
+    def __init__(self, task_manager, tool_registry, memory_manager):
+
         self.task_manager = task_manager
         self.tool_registry = tool_registry
+        self.memory_manager = memory_manager
 
     def run_once(self):
 
@@ -23,5 +25,9 @@ class BaseAgent:
         tool.execute(**task.payload)
 
         task.status = "completed"
+
+        self.memory_manager.remember(
+            f"task {task.type} executed"
+        )
 
         print("task completed:", task.id)

@@ -11,6 +11,8 @@ class Scheduler:
 
     def start(self, max_steps=None):
 
+        print("kaiwa-chan start")
+
         steps = 0
 
         while self.running:

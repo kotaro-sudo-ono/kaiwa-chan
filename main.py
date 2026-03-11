@@ -6,6 +6,7 @@ from core.tools.tool import Tool
 
 from agents.base_agent import BaseAgent
 from runtime.scheduler import Scheduler
+from core.memory.memory_manager import MemoryManager
 
 
 def print_message(message):
@@ -20,13 +21,16 @@ def main():
 
     tool_registry = ToolRegistry()
 
+    memory_manager = MemoryManager()
+
     tool_registry.register(
         Tool("print_message", print_message)
     )
 
     agent = BaseAgent(
         task_manager,
-        tool_registry
+        tool_registry,
+        memory_manager
     )
 
     scheduler = Scheduler(agent)
