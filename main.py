@@ -8,6 +8,7 @@ from core.event.event_bus import EventBus
 
 from core.cognition.observe import Observer
 
+from integrations.voicevox import speak
 
 def main():
 
@@ -29,6 +30,12 @@ def main():
 
     print(context)
 
+    # thinker
+    thinker = Thinker()
+
+    thought = thinker.think(context)
+
+    print(thought)
 
 if __name__ == "__main__":
     main()
