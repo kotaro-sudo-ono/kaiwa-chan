@@ -13,3 +13,7 @@ class MemoryStore:
 
     def latest(self, n=5):
         return self.memories[-n:]
+
+    
+    def get_all(self):
+        return self.memories

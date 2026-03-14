@@ -15,3 +15,6 @@ class TaskQueue:
 
     def is_empty(self):
         return self.queue.empty()
+        
+    def get_all(self):
+        return list(self.queue.queue)

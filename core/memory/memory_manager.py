@@ -1,13 +1,11 @@
-# core/memory/memory_manager.py
-
 from core.memory.memory_store import MemoryStore
 from core.memory.models import Memory
 
 
 class MemoryManager:
 
-    def __init__(self):
-        self.store = MemoryStore()
+    def __init__(self, store: MemoryStore):
+        self.store = store
 
     def remember(self, content: str):
 
@@ -20,3 +18,6 @@ class MemoryManager:
     def recall_latest(self, n=5):
 
         return self.store.latest(n)
+
+    def get_all(self):
+        return self.store.get_all()

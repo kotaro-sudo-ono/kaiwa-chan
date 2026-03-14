@@ -1,46 +1,33 @@
-from core.event.event_bus import EventBus
-from core.task.task_manager import TaskManager
-
-from core.tools.registry import ToolRegistry
-from core.tools.tool import Tool
-
-from agents.base_agent import BaseAgent
-from runtime.scheduler import Scheduler
 from core.memory.memory_manager import MemoryManager
+from core.memory.memory_store import MemoryStore
 
+from core.task.task_manager import TaskManager
+from core.task.task_queue import TaskQueue
 
-def print_message(message):
-    print("tool executed:", message)
+from core.event.event_bus import EventBus
+
+from core.cognition.observe import Observer
 
 
 def main():
 
+    # EventBus
     event_bus = EventBus()
 
-    task_manager = TaskManager(event_bus)
+    # Memory
+    memory_store = MemoryStore()
+    memory_manager = MemoryManager(memory_store)
 
-    tool_registry = ToolRegistry()
+    # Task
+    task_queue = TaskQueue()
+    task_manager = TaskManager(event_bus, task_queue)
 
-    memory_manager = MemoryManager()
+    # Observer
+    observer = Observer(memory_manager, task_manager)
 
-    tool_registry.register(
-        Tool("print_message", print_message)
-    )
+    context = observer.observe("hello kaiwa-chan")
 
-    agent = BaseAgent(
-        task_manager,
-        tool_registry,
-        memory_manager
-    )
-
-    scheduler = Scheduler(agent)
-
-    task_manager.create_task(
-        "print_message",
-        {"message": "hello kaiwa-chan"}
-    )
-
-    scheduler.start(max_steps=3)
+    print(context)
 
 
 if __name__ == "__main__":
