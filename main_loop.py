@@ -7,6 +7,7 @@ import keyboard
 from integrations.whisper_integration import transcribe_audio
 from integrations.voicevox import speak
 from agents.administrator import Administrator
+from agents.memory_agent import MemoryAgent
 
 from core.memory.memory_manager import MemoryManager
 from core.memory.memory_store import MemoryStore
@@ -26,7 +27,7 @@ def strip_code_blocks(text: str) -> str:
     return text.strip()
 
 
-def record_and_process(observer, shogun: Administrator, task_queue: TaskQueue, is_speaking: threading.Event):
+def record_and_process(observer, shogun: Administrator, memory_agent: MemoryAgent, task_queue: TaskQueue, is_speaking: threading.Event):
     """
     録音→文字起こし→Administrator（マルチエージェント）→Observer→TaskQueue
     スレッドで回す
@@ -59,6 +60,9 @@ def record_and_process(observer, shogun: Administrator, task_queue: TaskQueue, i
         llm_reply = shogun.process(user_text)
         print(f"Administrator 返答: {llm_reply}")
 
+        # MemoryAgent が非同期でパーソナルデータを判断・保存（TTS再生を遅延させない）
+        threading.Thread(target=memory_agent.process, args=(user_text, llm_reply), daemon=True).start()
+
         # Observer に渡してタスク生成（TaskManager が task_queue に直接 push）
         context = observer.observe(user_text, llm_reply=llm_reply)
         print(f"Observer Context: {context}")
@@ -75,13 +79,14 @@ def main_loop():
     task_manager = TaskManager(event_bus, task_queue)
     observer = Observer(memory_manager, task_manager)
     shogun = Administrator()  # マルチエージェントコントローラ
+    memory_agent = MemoryAgent(memory_store)
     is_speaking = threading.Event()
 
     print("=== Kaiwa-chan AI 常駐ループ 起動 ===")
     print("'space'で録音開始・離すと終了、'esc'で全体終了")
 
     # 録音＆文字起こしスレッド開始
-    t = threading.Thread(target=record_and_process, args=(observer, shogun, task_queue, is_speaking), daemon=True)
+    t = threading.Thread(target=record_and_process, args=(observer, shogun, memory_agent, task_queue, is_speaking), daemon=True)
     t.start()
 
     try:
