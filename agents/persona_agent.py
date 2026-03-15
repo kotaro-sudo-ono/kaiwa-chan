@@ -32,12 +32,7 @@ class PersonaAgent:
         return persona
 
     def _build_system_prompt(self) -> str:
-        name = self.persona.get("name", "AI")
-        lines = [f"あなたは {name} です。"]
-        for key in ("性格", "口調", "役割", "言語"):
-            if key in self.persona:
-                lines.append(f"{key}: {self.persona[key]}")
-        return "\n".join(lines)
+        return self.persona_path.read_text(encoding="utf-8")
 
     def ask(self, prompt: str) -> str:
         """Send a prompt with this agent's system prompt and return the response."""

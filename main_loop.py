@@ -1,4 +1,5 @@
 # file: main_loop.py
+import re
 import time
 import threading
 import keyboard
@@ -15,7 +16,17 @@ from core.event.event_bus import EventBus
 from core.cognition.observe import Observer
 
 
-def record_and_process(observer, task_queue, shogun: Administrator):
+RESET_KEYWORDS = ["リセット", "タスクリセット", "クリア", "全部消して", "キャンセル"]
+
+
+def strip_code_blocks(text: str) -> str:
+    """コードブロック(``` ... ```)とインラインコード(` ... `)をTTS前に除去する"""
+    text = re.sub(r"```[\s\S]*?```", "コードは省略します。", text)
+    text = re.sub(r"`[^`]+`", "", text)
+    return text.strip()
+
+
+def record_and_process(observer, shogun: Administrator, task_queue: TaskQueue, is_speaking: threading.Event):
     """
     録音→文字起こし→Administrator（マルチエージェント）→Observer→TaskQueue
     スレッドで回す
@@ -25,6 +36,11 @@ def record_and_process(observer, task_queue, shogun: Administrator):
             print("終了キー押下 → 録音スレッド停止")
             break
 
+        # 再生中は録音しない
+        if is_speaking.is_set():
+            time.sleep(0.1)
+            continue
+
         # 録音 & 文字起こし
         user_text = transcribe_audio()
         if not user_text:
@@ -32,17 +48,20 @@ def record_and_process(observer, task_queue, shogun: Administrator):
 
         print(f"ユーザ入力: {user_text}")
 
+        # リセットキーワードチェック
+        if any(kw in user_text for kw in RESET_KEYWORDS):
+            task_queue.clear()
+            print("[リセット] タスクキューをクリアしました")
+            speak("タスクをリセットしました")
+            continue
+
         # Administrator（マルチエージェント）で返答生成
         llm_reply = shogun.process(user_text)
         print(f"Administrator 返答: {llm_reply}")
 
-        # Observer に渡してタスク生成
+        # Observer に渡してタスク生成（TaskManager が task_queue に直接 push）
         context = observer.observe(user_text, llm_reply=llm_reply)
         print(f"Observer Context: {context}")
-
-        # TaskQueue にタスク追加
-        for task in context.get("tasks", []):
-            task_queue.push(task)
 
         time.sleep(0.1)
 
@@ -56,12 +75,13 @@ def main_loop():
     task_manager = TaskManager(event_bus, task_queue)
     observer = Observer(memory_manager, task_manager)
     shogun = Administrator()  # マルチエージェントコントローラ
+    is_speaking = threading.Event()
 
     print("=== Kaiwa-chan AI 常駐ループ 起動 ===")
     print("'space'で録音開始・離すと終了、'esc'で全体終了")
 
     # 録音＆文字起こしスレッド開始
-    t = threading.Thread(target=record_and_process, args=(observer, task_queue, shogun), daemon=True)
+    t = threading.Thread(target=record_and_process, args=(observer, shogun, task_queue, is_speaking), daemon=True)
     t.start()
 
     try:
@@ -75,8 +95,11 @@ def main_loop():
                 task = task_queue.pop()
                 print(f"タスク実行: {task.type}, payload={task.payload}")
                 if task.type == "print_message":
-                    # VoiceVoxで音声出力
-                    speak(task.payload.get("message", ""))
+                    # VoiceVoxで音声出力（コードブロック除去後、再生中フラグを立てる）
+                    message = strip_code_blocks(task.payload.get("message", ""))
+                    is_speaking.set()
+                    speak(message)
+                    is_speaking.clear()
 
             time.sleep(0.1)
 
