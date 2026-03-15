@@ -5,7 +5,7 @@ import keyboard
 
 from integrations.whisper_integration import transcribe_audio
 from integrations.voicevox import speak
-from integrations.llm_interface import get_response
+from agents.administrator import Administrator
 
 from core.memory.memory_manager import MemoryManager
 from core.memory.memory_store import MemoryStore
@@ -15,9 +15,9 @@ from core.event.event_bus import EventBus
 from core.cognition.observe import Observer
 
 
-def record_and_process(observer, task_queue):
+def record_and_process(observer, task_queue, shogun: Administrator):
     """
-    録音→文字起こし→LLM→Observer→TaskQueueへタスク追加
+    録音→文字起こし→Administrator（マルチエージェント）→Observer→TaskQueue
     スレッドで回す
     """
     while True:
@@ -32,9 +32,9 @@ def record_and_process(observer, task_queue):
 
         print(f"ユーザ入力: {user_text}")
 
-        # LLMに投げて返答取得（Ollama or Claude 自動切替）
-        llm_reply = get_response(user_text)
-        print(f"LLM 返答: {llm_reply}")
+        # Administrator（マルチエージェント）で返答生成
+        llm_reply = shogun.process(user_text)
+        print(f"Administrator 返答: {llm_reply}")
 
         # Observer に渡してタスク生成
         context = observer.observe(user_text, llm_reply=llm_reply)
@@ -55,12 +55,13 @@ def main_loop():
     task_queue = TaskQueue()
     task_manager = TaskManager(event_bus, task_queue)
     observer = Observer(memory_manager, task_manager)
+    shogun = Administrator()  # マルチエージェントコントローラ
 
     print("=== Kaiwa-chan AI 常駐ループ 起動 ===")
     print("'space'で録音開始・離すと終了、'esc'で全体終了")
 
     # 録音＆文字起こしスレッド開始
-    t = threading.Thread(target=record_and_process, args=(observer, task_queue), daemon=True)
+    t = threading.Thread(target=record_and_process, args=(observer, task_queue, shogun), daemon=True)
     t.start()
 
     try:
