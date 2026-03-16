@@ -8,6 +8,7 @@ from integrations.whisper_integration import transcribe_audio
 from integrations.voicevox import speak
 from agents.administrator import Administrator
 from agents.memory_agent import MemoryAgent
+from autonomous_loop import AutonomousLoop
 
 from core.memory.memory_manager import MemoryManager
 from core.memory.memory_store import MemoryStore
@@ -27,7 +28,7 @@ def strip_code_blocks(text: str) -> str:
     return text.strip()
 
 
-def record_and_process(observer, shogun: Administrator, memory_agent: MemoryAgent, task_queue: TaskQueue, is_speaking: threading.Event):
+def record_and_process(observer, shogun: Administrator, memory_agent: MemoryAgent, task_queue: TaskQueue, is_speaking: threading.Event, auto_loop: AutonomousLoop):
     """
     録音→文字起こし→Administrator（マルチエージェント）→Observer→TaskQueue
     スレッドで回す
@@ -47,6 +48,7 @@ def record_and_process(observer, shogun: Administrator, memory_agent: MemoryAgen
         if not user_text:
             continue
 
+        auto_loop.update_last_user_time()
         print(f"ユーザ入力: {user_text}")
 
         # リセットキーワードチェック
@@ -82,11 +84,14 @@ def main_loop():
     memory_agent = MemoryAgent(memory_store)
     is_speaking = threading.Event()
 
+    auto_loop = AutonomousLoop(memory_manager, shogun, task_manager, is_speaking, interval=10)
+    auto_loop.start()
+
     print("=== Kaiwa-chan AI 常駐ループ 起動 ===")
     print("'space'で録音開始・離すと終了、'esc'で全体終了")
 
     # 録音＆文字起こしスレッド開始
-    t = threading.Thread(target=record_and_process, args=(observer, shogun, memory_agent, task_queue, is_speaking), daemon=True)
+    t = threading.Thread(target=record_and_process, args=(observer, shogun, memory_agent, task_queue, is_speaking, auto_loop), daemon=True)
     t.start()
 
     try:

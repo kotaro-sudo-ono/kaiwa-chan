@@ -13,3 +13,12 @@ class ReviewerAgent(PersonaAgent):
             f"コード:\n{code}"
         )
         return self.ask(prompt)
+
+    def review_task(self, task: str) -> str:
+        """実装前に設計・アーキテクチャ観点でタスクをレビューする。"""
+        prompt = (
+            f"以下の実装タスクを設計・アーキテクチャの観点でレビューしてください。\n"
+            f"実装者への注意点や考慮すべき点を日本語で簡潔にまとめてください:\n\n"
+            f"タスク:\n{task}"
+        )
+        return self.ask(prompt)
