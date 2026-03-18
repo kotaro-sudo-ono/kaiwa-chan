@@ -1,7 +1,10 @@
 {
   "permissions": {
     "allow": [
-      "Bash(python:*)"
+      "Bash(python:*)",
+      "Read(//c/Users/nekon/project/multi-agent-shogun/**)",
+      "Read(//c/Users/nekon/project/multi-agent-shogun/queue/**)",
+      "Bash(wsl:*)"
     ]
   }
 }
