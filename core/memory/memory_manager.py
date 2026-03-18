@@ -6,6 +6,10 @@ class MemoryManager:
 
     def __init__(self, store: MemoryStore):
         self.store = store
+    
+    def add_memory(self, text: str):
+        # 記憶ストアに追加
+        self.store.add(text)
 
     def remember(self, content: str):
 

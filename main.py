@@ -8,7 +8,10 @@ from core.event.event_bus import EventBus
 
 from core.cognition.observe import Observer
 
+from core.cognition.think import Thinker
+
 from integrations.voicevox import speak
+
 
 def main():
 
@@ -36,6 +39,16 @@ def main():
     thought = thinker.think(context)
 
     print(thought)
+
+    # ユーザー入力
+    user_input = "こんにちは、会話ちゃんです"
+
+    # 観察
+    context = observer.observe(user_input)
+    print(context)
+
+    # 音声で出力
+    speak(user_input)
 
 if __name__ == "__main__":
     main()

@@ -18,3 +18,7 @@ class TaskQueue:
         
     def get_all(self):
         return list(self.queue.queue)
+
+    def clear(self):
+        with self.queue.mutex:
+            self.queue.queue.clear()
